@@ -5,68 +5,105 @@ import 'package:learn_mvvm/model/model.dart';
 import 'package:learn_mvvm/repository/home_repository.dart';
 
 class HomeViewmodel with ChangeNotifier {
-  final _homeRepo = HomeRepository();
+  final HomeRepository _homeRepository;
+
+  HomeViewmodel({HomeRepository? homeRepository})
+      : _homeRepository = homeRepository ?? HomeRepository();
+
   ApiResponse<List<Province>> provinceList = ApiResponse.loading();
 
-  setProvinceList(ApiResponse<List<Province>> response) {
+  void setProvinceList(ApiResponse<List<Province>> response) {
     provinceList = response;
     notifyListeners();
   }
 
   Future<void> getProvinceList() async {
-    setProvinceList(ApiResponse.loading());
-    _homeRepo.fetchProvinceList().then((value) {
+    try {
+      setProvinceList(ApiResponse.loading());
+      final value = await _homeRepository.fetchProvinceList();
       setProvinceList(ApiResponse.completed(value));
-    }).onError((error, StackTrace) {
+    } catch (error) {
       setProvinceList(ApiResponse.error(error.toString()));
-    });
+    }
   }
 
   ApiResponse<List<City>> cityListOrigin = ApiResponse.loading();
-  ApiResponse<List<City>> cityListDest = ApiResponse.loading();
-  setCityListOrigin(ApiResponse<List<City>> response) {
+
+  void setCityListOrigin(ApiResponse<List<City>> response) {
     cityListOrigin = response;
     notifyListeners();
   }
 
-  setCityListDest(ApiResponse<List<City>> response) {
+Future<void> getCityListForOrigin(var provId) async {
+  try {
+    // Ensure provId is not null and is of the correct type
+    if (provId == null) {
+      throw ArgumentError('Province ID cannot be null');
+    }
+
+    // Set loading state before fetching
+    setCityListOrigin(ApiResponse.loading());
+
+    // Fetch city list
+    final value = await _homeRepository.fetchCityList(provId);
+
+    // Check if the returned value is null or empty
+    if (value == null || value.isEmpty) {
+      setCityListOrigin(ApiResponse.error('No cities found for this province'));
+      return;
+    }
+
+    // Set completed state with fetched data
+    setCityListOrigin(ApiResponse.completed(value));
+
+  } catch (error, stackTrace) {
+    // More detailed error logging
+    print('Error fetching city list for origin: $error');
+    print('Stack trace: $stackTrace');
+
+    // Set error state with detailed error message
+    setCityListOrigin(ApiResponse.error(error.toString()));
+  }
+}
+
+  ApiResponse<List<City>> cityListDest = ApiResponse.loading();
+
+  void setCityListDest(ApiResponse<List<City>> response) {
     cityListDest = response;
     notifyListeners();
   }
 
-  Future<void> getCityListForOrigin(var provId) async {
-    setCityListOrigin(ApiResponse.loading());
-    _homeRepo.fetchCityList(provId).then((value) {
-      setCityListOrigin(ApiResponse.completed(value));
-    }).onError((error, StackTrace) {
-      setCityListOrigin(ApiResponse.error(error.toString()));
-    });
-  }
-
   Future<void> getCityListForDest(var provId) async {
-    setCityListDest(ApiResponse.loading());
-    _homeRepo.fetchCityList(provId).then((value) {
+    try {
+      if (provId == null) {
+        throw ArgumentError('Province ID cannot be null');
+      }
+
+      setCityListDest(ApiResponse.loading());
+      final value = await _homeRepository.fetchCityList(provId);
       setCityListDest(ApiResponse.completed(value));
-    }).onError((error, StackTrace) {
+    } catch (error) {
       setCityListDest(ApiResponse.error(error.toString()));
-    });
+    }
   }
 
   ApiResponse<List<Ongkir>> ongkirList = ApiResponse.loading();
-  setOngkirList(ApiResponse<List<Ongkir>> response) {
+
+  void setOngkirList(ApiResponse<List<Ongkir>> response) {
     ongkirList = response;
+    debugPrint("Ongkir List Updated: ${response.data}");
     notifyListeners();
   }
 
   Future<void> getOngkirList(
       String origin, String destination, int weight, String courier) async {
-    setOngkirList(ApiResponse.loading());
-    _homeRepo
-        .fetchOngkirList(origin, destination, weight, courier)
-        .then((value) {
+    try {
+      setOngkirList(ApiResponse.loading());
+      final value = await _homeRepository.fetchOngkirList(
+          origin, destination, weight, courier);
       setOngkirList(ApiResponse.completed(value));
-    }).onError((error, stackTrace) {
+    } catch (error) {
       setOngkirList(ApiResponse.error(error.toString()));
-    });
+    }
   }
 }

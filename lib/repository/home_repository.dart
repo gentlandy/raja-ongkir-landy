@@ -10,7 +10,7 @@ class HomeRepository {
       dynamic response = await _apiServices.getApiResponse('/starter/province');
       List<Province> result = [];
 
-      if (response['rajaongkir']['status']['code' == 200]) {
+      if (response['rajaongkir']['status']['code'] == 200) {
         result = (response['rajaongkir']['results'] as List)
             .map((e) => Province.fromJson(e))
             .toList();

@@ -40,7 +40,7 @@ dynamic returnResponse(http.Response response) {
     } on TimeoutException {
       throw FetchDataException('Network request time out!');
     }
-
+    
     return responseJson;
   }
 

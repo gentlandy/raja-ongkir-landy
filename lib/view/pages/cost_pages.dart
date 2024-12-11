@@ -1,22 +1,22 @@
 part of 'pages.dart';
 
-
-class CostPages extends StatefulWidget {
-  const CostPages({super.key});
+class CostPage extends StatefulWidget {
+  const CostPage({super.key});
 
   @override
-  State<CostPages> createState() => _CostPagesState();
+  State<CostPage> createState() => _OngkirPageState();
 }
 
-class _CostPagesState extends State<CostPages> {
+class _OngkirPageState extends State<CostPage> {
   final HomeViewmodel homeViewModel = HomeViewmodel();
 
-  dynamic selectedOriginProvince;
-  dynamic selectedOriginCity;
-  dynamic selectedDestinationProvince;
-  dynamic selectedDestinationCity;
-  dynamic selectedCourier;
-  dynamic packageWeight;
+  // Use nullable typed variables for better type safety
+  Province? selectedProvinceOrigin;
+  City? selectedCityOrigin;
+  Province? selectedProvinceDest;
+  City? selectedCityDest;
+  String? selectedCourier;
+  String? weight;
 
   @override
   void initState() {
@@ -24,277 +24,329 @@ class _CostPagesState extends State<CostPages> {
     homeViewModel.getProvinceList();
   }
 
-  bool get isFormComplete {
-    return selectedOriginProvince != null &&
-        selectedOriginCity != null &&
-        selectedDestinationProvince != null &&
-        selectedDestinationCity != null &&
+  // Improved form validation with more explicit checks
+  bool get isFormValid {
+    return selectedProvinceOrigin != null &&
+        selectedCityOrigin != null &&
+        selectedProvinceDest != null &&
+        selectedCityDest != null &&
         selectedCourier != null &&
-        packageWeight != null &&
-        packageWeight.toString().isNotEmpty;
+        weight != null &&
+        weight!.trim().isNotEmpty &&
+        double.tryParse(weight!) != null;
+  }
+
+  // Extracted method for dropdown styling
+  InputDecoration _dropdownDecoration(String hintText) {
+    return InputDecoration(
+      hintText: hintText,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    );
+  }
+
+  // Extracted method for section headers
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.blue[800],
+        ),
+      ),
+    );
+  }
+
+  // Refactored dropdown builder
+  Widget _buildDropdown<T>({
+    required T? value,
+    required List<T>? items,
+    required String hintText,
+    required void Function(T?) onChanged,
+    required String Function(T) displayText,
+  }) {
+    return DropdownButtonFormField<T>(
+      value: value,
+      decoration: _dropdownDecoration(hintText),
+      isExpanded: true,
+      hint: Text(hintText),
+      items: items?.map((item) {
+        return DropdownMenuItem<T>(
+          value: item,
+          child: Text(
+            displayText(item),
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+      }).toList(),
+      onChanged: onChanged,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.teal,
         title: const Text("Shipping Cost Calculator"),
-        centerTitle: true,
+        backgroundColor: Colors.blue[600],
+        elevation: 0,
       ),
-      body: ChangeNotifierProvider<HomeViewmodel>(
-        create: (BuildContext context) => homeViewModel,
+      body: ChangeNotifierProvider<HomeViewmodel>.value(
+        value: homeViewModel,
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  "Courier Selection",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField(
+                // Courier Dropdown
+                _buildSectionHeader("Courier"),
+                _buildDropdown<String>(
                   value: selectedCourier,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'jne', child: Text("JNE")),
-                    DropdownMenuItem(value: 'pos', child: Text("POS")),
-                    DropdownMenuItem(value: 'tiki', child: Text("TIKI")),
-                  ],
-                  hint: const Text("Select Courier"),
+                  items: ['jne', 'pos', 'tiki'],
+                  hintText: 'Select Courier',
                   onChanged: (value) {
                     setState(() {
                       selectedCourier = value;
                     });
                   },
+                  displayText: (courier) => courier.toUpperCase(),
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  "Package Weight (grams)",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
+
+                // Weight Input
+                const SizedBox(height: 16),
+                _buildSectionHeader("Package Weight"),
                 TextFormField(
-                  initialValue: packageWeight,
+                  initialValue: weight,
                   decoration: InputDecoration(
-                    hintText: "Enter weight in grams",
+                    labelText: "Weight (grams)",
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   keyboardType: TextInputType.number,
                   onChanged: (value) {
-                    packageWeight = value;
+                    weight = value;
                   },
                 ),
-                const SizedBox(height: 20),
-                _buildDropdownSection(
-                  title: "Origin", 
-                  provinceValue: selectedOriginProvince, 
-                  cityValue: selectedOriginCity, 
-                  onProvinceChanged: (value) {
-                    setState(() {
-                      selectedOriginProvince = value;
-                      selectedOriginCity = null;
-                      homeViewModel.getCityListForOrigin(value.provinceId);
-                    });
-                  }, 
-                  onCityChanged: (value) {
-                    setState(() {
-                      selectedOriginCity = value;
-                    });
-                  },
+
+                // Origin Selection
+                const SizedBox(height: 16),
+                _buildSectionHeader("Origin"),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Consumer<HomeViewmodel>(
+                        builder: (context, viewModel, _) {
+                          return _buildDropdown<Province>(
+                            value: selectedProvinceOrigin,
+                            items: viewModel.provinceList.data,
+                            hintText: 'Origin Province',
+                            onChanged: (Province? newValue) {
+                              setState(() {
+                                selectedProvinceOrigin = newValue;
+                                selectedCityOrigin = null;
+                                if (newValue != null) {
+                                  homeViewModel.getCityListForOrigin(
+                                      newValue.provinceId);
+                                }
+                              });
+                            },
+                            displayText: (province) => province.province ?? '',
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Consumer<HomeViewmodel>(
+                        builder: (context, viewModel, _) {
+                          return _buildDropdown<City>(
+                            value: selectedCityOrigin,
+                            items: viewModel.cityListOrigin.data,
+                            hintText: 'Origin City',
+                            onChanged: (City? newValue) {
+                              setState(() {
+                                selectedCityOrigin = newValue;
+                              });
+                            },
+                            displayText: (city) => city.cityName ?? '',
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                _buildDropdownSection(
-                  title: "Destination", 
-                  provinceValue: selectedDestinationProvince, 
-                  cityValue: selectedDestinationCity, 
-                  onProvinceChanged: (value) {
-                    setState(() {
-                      selectedDestinationProvince = value;
-                      selectedDestinationCity = null;
-                      homeViewModel.getCityListForDest(value.provinceId);
-                    });
-                  }, 
-                  onCityChanged: (value) {
-                    setState(() {
-                      selectedDestinationCity = value;
-                    });
-                  },
+
+                // Destination Selection
+                const SizedBox(height: 16),
+                _buildSectionHeader("Destination"),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Consumer<HomeViewmodel>(
+                        builder: (context, viewModel, _) {
+                          return _buildDropdown<Province>(
+                            value: selectedProvinceDest,
+                            items: viewModel.provinceList.data,
+                            hintText: 'Destination Province',
+                            onChanged: (Province? newValue) {
+                              setState(() {
+                                selectedProvinceDest = newValue;
+                                selectedCityDest = null;
+                                if (newValue != null) {
+                                  homeViewModel
+                                      .getCityListForDest(newValue.provinceId);
+                                }
+                              });
+                            },
+                            displayText: (province) => province.province ?? '',
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Consumer<HomeViewmodel>(
+                        builder: (context, viewModel, _) {
+                          return _buildDropdown<City>(
+                            value: selectedCityDest,
+                            items: viewModel.cityListDest.data,
+                            hintText: 'Destination City',
+                            onChanged: (City? newValue) {
+                              setState(() {
+                                selectedCityDest = newValue;
+                              });
+                            },
+                            displayText: (city) => city.cityName ?? '',
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 30),
+
+                // Calculate Button
+                const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: isFormComplete
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        isFormValid ? Colors.blue[600] : Colors.grey,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: isFormValid
                       ? () {
                           homeViewModel.getOngkirList(
-                            selectedOriginCity.cityId,
-                            selectedDestinationCity.cityId,
-                            int.parse(packageWeight),
-                            selectedCourier,
+                            selectedCityOrigin!.cityId!,
+                            selectedCityDest!.cityId!,
+                            int.parse(weight!),
+                            selectedCourier!,
                           );
                         }
                       : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12.0),
-                    child: Text(
-                      "Calculate Shipping Cost",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+                  child: const Text(
+                    "Calculate Shipping Cost",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-                const SizedBox(height: 30),
-                _buildShippingCostResult(),
+
+                // Results Section
+                const SizedBox(height: 16),
+                Consumer<HomeViewmodel>(
+                  builder: (context, viewModel, _) {
+                    if (viewModel.ongkirList.status == Status.completed) {
+                      final ongkirData = viewModel.ongkirList.data![0].costs!;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: ongkirData.map((ongkir) {
+                          return Card(
+                            elevation: 4,
+                            margin: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundColor: Colors.blue[600],
+                                        child: Text(
+                                          ongkir.service
+                                                  ?.toUpperCase()
+                                                  .substring(0, 1) ??
+                                              "",
+                                          style: const TextStyle(
+                                              color: Colors.white),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          "${ongkir.description ?? "No Description"} (${ongkir.service ?? "Service"})",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.blue[800],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ...?ongkir.cost?.map((cost) {
+                                        return Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              "Cost: Rp ${cost.value ?? 0}",
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              "Estimated Delivery: ${cost.etd ?? 'N/A'} days",
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.green[700],
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      }).toList() ??
+                                      [],
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildDropdownSection({
-    required String title,
-    required dynamic provinceValue,
-    required dynamic cityValue,
-    required Function(dynamic) onProvinceChanged,
-    required Function(dynamic) onCityChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "$title Province",
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        Consumer<HomeViewmodel>(
-          builder: (context, viewModel, _) {
-            switch (viewModel.provinceList.status) {
-              case Status.loading:
-                return const CircularProgressIndicator();
-              case Status.completed:
-                return DropdownButtonFormField(
-                  value: provinceValue,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  hint: Text("Select $title Province"),
-                  items: viewModel.provinceList.data!
-                      .map<DropdownMenuItem<Province>>((Province value) {
-                    return DropdownMenuItem(
-                      value: value,
-                      child: Text(value.province.toString()),
-                    );
-                  }).toList(),
-                  onChanged: onProvinceChanged,
-                );
-              default:
-                return const Text("Error fetching data.");
-            }
-          },
-        ),
-        const SizedBox(height: 10),
-        Text(
-          "$title City",
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        Consumer<HomeViewmodel>(
-          builder: (context, viewModel, _) {
-            switch (viewModel.cityListOrigin.status) {
-              case Status.loading:
-                return const CircularProgressIndicator();
-              case Status.completed:
-                return DropdownButtonFormField(
-                  value: cityValue,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  hint: Text("Select $title City"),
-                  items: viewModel.cityListOrigin.data!
-                      .map<DropdownMenuItem<City>>((City value) {
-                    return DropdownMenuItem(
-                      value: value,
-                      child: Text(value.cityName.toString()),
-                    );
-                  }).toList(),
-                  onChanged: onCityChanged,
-                );
-              default:
-                return const Text("Error fetching data.");
-            }
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildShippingCostResult() {
-    return Consumer<HomeViewmodel>(
-      builder: (context, viewModel, _) {
-        switch (viewModel.ongkirList.status) {
-          case Status.loading:
-            return const Center(child: CircularProgressIndicator());
-          case Status.completed:
-            return Column(
-              children: viewModel.ongkirList.data![0].costs!.map((cost) {
-                return Card(
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      child: Text(cost.service?.toUpperCase().substring(0, 1)??""),
-                      backgroundColor: Colors.teal,
-                    ),
-                    title: Text(
-                      "${cost.description} (${cost.service})",
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: cost.cost!.map((detail) {
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 5.0),
-                          child: Text(
-                            "Cost: Rp${detail.value} | ETA: ${detail.etd} days",
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                );
-              }).toList(),
-            );
-          case Status.error:
-            return Center(
-              child: Text(viewModel.ongkirList.message ?? "Error fetching data."),
-            );
-          default:
-            return const SizedBox();
-        }
-      },
     );
   }
 }
